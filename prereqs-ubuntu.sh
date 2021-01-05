@@ -67,8 +67,8 @@ export NVM_DIR="${HOME}/.nvm"
 
 # Install node
 echo "# Installing nodeJS"
-nvm install 8
-nvm use 8
+nvm install 12
+nvm use 12
 
 # Ensure that CA certificates are installed
 sudo apt-get -y install apt-transport-https ca-certificates
