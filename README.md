@@ -42,7 +42,7 @@ docker swarm init --advertise-addr [Fabric-Node-IP]
 ```
 2. 在节点2上运行以下命令
 ```
-docker swarm join --token SWMTKN-1-52d9at8jqihc1k0kotf6ma4r70cjz9j1heyql9kas80fp1vmxc-2ll0unuehvj7q5ds6qsmpxk5a [Fabric-Node-IP]:2377
+ docker swarm join --token SWMTKN-1-06y1epk9dof6rs0xlg02gpvent2gppkqq090mw3b9uo7t7akqx-3su530kfptmabwx3waxkbe7d1 [Fabric-Node-IP]:2377
 ```
 3. (节点 1) 通过以下命令就可以创建覆盖网络。
 ```
@@ -51,6 +51,7 @@ docker network create --attachable --driver overlay first-network
 4. (节点 2) 使用以下命令创建一个busybox用于查看覆盖网络。
 ```
 docker run -itd --name mybusybox --network first-network busybox
+docker network ls
 ```
 
 # new-two-org-ca
@@ -64,26 +65,29 @@ cd fabric-samples
 export PATH=$PATH:$PWD/bin
 cd ../new-two-org-ca
 
-sudo ./network.sh up -ca
-sudo ./network.sh createChannel
+./network.sh up -ca
+./network.sh createChannel
 ```
 3. (节点1) 压缩该文件然后上传到其他两个节点。你可以使用Filezilla。
 ```
-sudo chmod -R 775 new-two-org-ca/
 cd ..
 tar -czvf new-two-org-ca.tar.gz new-two-org-ca
 ```
 4. (节点2) 在各节点解压缩该文件。
 ```
 tar -xzvf new-two-org-ca.tar.gz new-two-org-ca
+sudo chmod -R 775 new-two-org-ca/
 ```
 5. (节点2) new-two-org-ca目录下，运行以下命令，为不同的组件配置docker容器。
 ```
-sudo ./node2.sh up
+cd fabric-samples
+export PATH=$PATH:$PWD/bin
+cd ../new-two-org-ca
+./node2.sh up
 ```
 6. (节点1) 把所有peer节点加入通道。
 ```
-sudo ./mychannelup.sh
+./mychannelup.sh
 ```
 
 # 编辑know_hosts
@@ -267,4 +271,31 @@ docker volume prune
 ./node2.sh down
 docker volume ls
 docker volume prune
+```
+
+# questions
+1. sudo: unable to resolve host ubuntu
+```
+sudo usermod -aG sudo frog
+add
+vi /etc/hosts
+127.0.1.1       ubuntu
+```
+2. To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+```
+su - frog
+touch ~/.sudo_as_admin_successful
+```
+3. PATH
+```
+createChannel
+FABRIC_CFG_PATH=$PWD/../fabric-samples/config/
+
+network.sh/node2.sh
+ if [[ $? -ne 0 || ! -d "../fabric-samples/config" ]]; then
+```
+4. 复制
+```
+docker cp channel-artifacts/  cli:/opt/gopath/src/github.com/hyperledger/fabric/peer/
 ```
