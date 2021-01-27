@@ -93,19 +93,20 @@ cd ../new-two-org-ca
 # 编辑know_hosts
 vi /etc/hosts
 [Fabric-Node-IP] orderer.example.com
-[Fabric-Node-IP] orderer1.example.com
 [Fabric-Node-IP] peer0.org1.example.com
-[Fabric-Node-IP] orderer2.example.com
 [Fabric-Node-IP] peer0.org2.example.com
 
 # 安装chaincode
 1. 修改fabric-samples文件夹中样例chaincode，替换~/fabric-samples/chaincode/asset-transfer-basic/chaincode-go/chaincode/smartcontract.go
 2. 打包chaincode
 ```
-pushd ../fabric-samples/chaincode/asset-transfer-basic/chaincode-go
+pushd ../fabric-samples/asset-transfer-basic/chaincode-go
 GO111MODULE=on go mod vendor
 popd
-docker exec cli peer lifecycle chaincode package basic.tar.gz --path github.com/chaincode/asset-transfer-basic/chaincode-go --label basic_1
+docker exec cli peer lifecycle chaincode package basic.tar.gz --path github.com/chaincode/asset-transfer-basic/chaincode-go/chaincode --label basic
+
+./network.sh deployCC -ccn basic -ccp ../fabric-samples/asset-transfer-basic/chaincode-go -ccl go
+docker cp basic.tar.gz  cli:/opt/gopath/src/github.com/hyperledger/fabric/peer/
 ```
 3. (节点1) 安装chaincode到节点1
 ```
@@ -117,11 +118,11 @@ docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fa
 ```
 5. (节点1) org1 approve合约
 ```
-docker exec cli peer lifecycle chaincode approveformyorg --tls --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem --channelID mychannel --name basic --version 1 --sequence 1 --waitForEvent --package-id basic_1:a976a3f2eb95c19b91322fc939dd37135837e0cfc5d52e4dbc3a2ef881d14179
+docker exec cli peer lifecycle chaincode approveformyorg --tls --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem --channelID mychannel --name basic --version 1 --sequence 1 --waitForEvent --package-id basic_1.0:cbd00b6bec2af24863717d1da916334ae45554984aae5e04a579fa666f0b1c23
 ```
 6. (节点1) org2 approve合约
 ```
-docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/organizations/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp -e CORE_PEER_ADDRESS=peer0.org2.example.com:9051 -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt cli peer lifecycle chaincode approveformyorg --tls --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem --channelID mychannel --name basic --version 1 --sequence 1 --waitForEvent --package-id basic_1:a976a3f2eb95c19b91322fc939dd37135837e0cfc5d52e4dbc3a2ef881d14179
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/organizations/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp -e CORE_PEER_ADDRESS=peer0.org2.example.com:9051 -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt cli peer lifecycle chaincode approveformyorg --tls --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem --channelID mychannel --name basic --version 1 --sequence 1 --waitForEvent --package-id basic_1.0:cbd00b6bec2af24863717d1da916334ae45554984aae5e04a579fa666f0b1c23
 ```
 7. (节点1) Commit chaincode
 ```
@@ -162,11 +163,20 @@ netstat -ntlp | grep LISTEN
 ```
 
 # 安装explorer
-1. 下载 blockchain-explorer
+1. ### Setting up dependencies
+
+Apart from the dependencies that you already have installed in order to set up Hyperledger fabric, you need to install JQ and PostgreSQL for Hyperledger Explorer.
+
+```bash
+sudo apt-get update
+sudo apt-get install jq postgresql postgresql-contrib
+service postgresql restart
+```
+2. 下载 blockchain-explorer
 ```
 git clone https://github.com/hyperledger/blockchain-explorer.git
 ```
-2. 如有需要, Modify blockchain-explorer/app/explorerconfig.json to update PostgreSQL database settings.
+3. 如有需要, Modify blockchain-explorer/app/explorerconfig.json to update PostgreSQL database settings.
 ```
 "postgreSQL": {
     "host": "127.0.0.1",
@@ -176,12 +186,12 @@ git clone https://github.com/hyperledger/blockchain-explorer.git
     "passwd": "password"
 }
 ```
-3. 赋予数据库脚本权限
+4. 赋予数据库脚本权限
 ```
 cd blockchain-explorer/app/persistence/fabric/postgreSQL
 chmod -R 775 db/
 ```
-4. 更新配置文件 blockchain-explorer/app/platform/fabric/config.json
+5. 更新配置文件 blockchain-explorer/app/platform/fabric/config.json
 ```
 {
     "network-configs": {
@@ -194,16 +204,17 @@ chmod -R 775 db/
     "license": "Apache-2.0"
 }
 ```
-5. 更新first-network.json 文件 blockchain-explorer/app/platform/fabric/connection-profile/first-network.json
+6. 更新first-network.json 文件 blockchain-explorer/app/platform/fabric/connection-profile/first-network.json
 ```
 "adminPrivateKey": {
 				"path": "/home/frog/new-two-org-ca/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore/e578c75e1e30bb2463233f3d01f1b72075e7d1493af9eda5f7b2958c7dc9dbaa_sk"
 			}
 ```
-6. 创建数据库
+7. 创建数据库
 ```
 cd blockchain-explorer/app/persistence/fabric/postgreSQL/db
 sudo -u postgres ./createdb.sh
+node 注释，单独运行
 查看
 sudo -u postgres psql -c '\l'
 
@@ -241,14 +252,14 @@ sudo -u postgres psql fabricexplorer -c '\d'
  public | write_lock_write_lock_seq | sequence | hppoc
 (18 rows)
 ```
-7. 安装依赖
+8. 安装依赖
 ```
 ./main.sh install
 To install, run tests, and build project
 ./main.sh clean
 To clean the /node_modules, client/node_modules client/build, client/coverage, app/test/node_modules directories
 ```
-8. 运行
+9. 运行
 ```
 npm start
 It will have the backend and GUI service up
@@ -299,3 +310,10 @@ network.sh/node2.sh
 ```
 docker cp channel-artifacts/  cli:/opt/gopath/src/github.com/hyperledger/fabric/peer/
 ```
+5.  container_linux.go:370: starting container process caused: exec: "chaincode": executable file not found in $PATH: unknown
+```
+./network.sh deployCC -ccn basic -ccp ../fabric-samples/asset-transfer-basic/chaincode-go -ccl go
+```
+6. Copying ENV variables into temp file...
+./createdb.sh: line 6: node: command not found
+jq: error: Could not open file /tmp/process.env.json: No such file or directory
