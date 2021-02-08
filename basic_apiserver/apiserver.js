@@ -33,7 +33,7 @@ app.get('/api/getallassets', async function (req, res) {
 
         // Create a new gateway for connecting to our peer node.
         const gateway = new Gateway();
-        await gateway.connect(ccp, { wallet, identity: 'appUser', discovery: { enabled: true, asLocalhost: true },eventHandlerOptions:{strategy:null} });
+        await gateway.connect(ccp, { wallet, identity: 'appUser', discovery: { enabled: true, asLocalhost: false },eventHandlerOptions:{strategy:null} });
 
         // Get the network (channel) our contract is deployed to.
         const network = await gateway.getNetwork('mychannel');
@@ -65,7 +65,7 @@ if (!identity) {
 
 // Create a new gateway for connecting to our peer node.
 const gateway = new Gateway();
-await gateway.connect(ccp, { wallet, identity: 'appUser', discovery: { enabled: true, asLocalhost: true },eventHandlerOptions:{strategy:null} });
+await gateway.connect(ccp, { wallet, identity: 'appUser', discovery: { enabled: true, asLocalhost: false },eventHandlerOptions:{strategy:null} });
 
 // Get the network (channel) our contract is deployed to.
 const network = await gateway.getNetwork('mychannel');
@@ -100,7 +100,7 @@ if (!identity) {
 
 // Create a new gateway for connecting to our peer node.
 const gateway = new Gateway();
-await gateway.connect(ccp, { wallet, identity: 'appUser', discovery: { enabled: true, asLocalhost: true },eventHandlerOptions:{strategy:null} });
+await gateway.connect(ccp, { wallet, identity: 'appUser', discovery: { enabled: true, asLocalhost: false },eventHandlerOptions:{strategy:null} });
 
 // Get the network (channel) our contract is deployed to.
 const network = await gateway.getNetwork('mychannel');
